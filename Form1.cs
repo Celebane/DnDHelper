@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
 using System.Windows.Forms;
-using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.FileIO;
 using System.Text.RegularExpressions;
+using ICSharpCode.SharpZipLib.Zip;
+using System.IO;
 
 namespace DndHelper
 {
@@ -16,11 +15,13 @@ namespace DndHelper
             InitializeComponent();
             TypesComboBox.Text = "All";
             TypesComboBox.Items.Add("All");
+            ReadZip("Master");
             string[] list = ReadCSV("Master");
             foreach (var item in list)
             {
                 TypesComboBox.Items.Add(BreakCamelCase().Replace(item.Replace("^", ""), " $1").Trim());
             }
+            File.Delete(@".\Master.csv");
         }
 
         private void RandomBtn_Click(object sender, EventArgs e)
@@ -54,7 +55,7 @@ namespace DndHelper
             string Item = list[index];
 
             while (Item.Contains('^'))
-            {
+            {   
                 string file = Item.Substring(Item.IndexOf("^"), (Item.IndexOf("^", Item.IndexOf("^") + 1) - Item.IndexOf("^")) + 1);
                 BreadCrumbs = BreadCrumbs + " > " + file.Replace("^", "");
                 string[] Additional = GetItem(file.Replace("^", ""), BreadCrumbs);
@@ -79,7 +80,6 @@ namespace DndHelper
             return ReturnValues;
 
         }
-
         public static string Roll(string Dice)
         {
             int modifier = 0;
@@ -113,7 +113,8 @@ namespace DndHelper
         public static string[] ReadCSV(string FileName)
         {
             var list = new List<string>();
-            using (TextFieldParser parser = new(@"E:\source\powershell\TreasureTables\Tables\" + FileName + ".csv"))
+            ReadZip(FileName);
+            using (TextFieldParser parser = new(@".\" + FileName + ".csv"))
             {
                 parser.TextFieldType = FieldType.Delimited;
                 parser.SetDelimiters(",");
@@ -125,7 +126,19 @@ namespace DndHelper
                     list.Add(fields[1]);
                 }
             }
+            File.Delete(@".\" + FileName + ".csv");
             return list.ToArray();
+        }
+
+        public static void ReadZip(string Filename)
+        {
+            string Zip = @".\Tables.zip";
+            string File = Filename + ".csv";
+            FastZip fastZip = new()
+            {
+                Password = "blackstaff"
+            };
+            fastZip.ExtractZip(Zip, ".", File);
         }
 
         [GeneratedRegexAttribute("([A-Z+])", RegexOptions.Compiled)]
@@ -139,5 +152,5 @@ namespace DndHelper
                 e.Handled = true;
             }
         }
-    }    
+    }
 }
